@@ -127,9 +127,7 @@ pnpm exec turbo link
 
 Learn more about the power of Turborepo:
 
-- [Tasks](https://turborepo.com/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.com/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.com/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.com/docs/reference/configuration)
-- [CLI Usage](https://turborepo.com/docs/reference/command-line-reference)
+- 85% match for role based on resilience score.
+- 60% of hires fail due to poor cultural fit
+- In revenue enablement, our goal is to give every seller the skills and confidence to excel in the moments that matter. Many of these moments are in customer conversations, and having a way to scale great conversations has always been the Holy Grail of enablement.
+- Great ventures die everyday because founders can't tell the story that need to be told
