@@ -1,0 +1,206 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Core User Model (Extended for Pressurly)
+// ─────────────────────────────────────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  emailVerified Boolean   @default(false)
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Identity & Onboarding
+  primaryLanguage String?
+  targetLanguage  String    @default("English")
+  confidenceLevel String?   // "Low", "Medium", "High"
+
+  // Profile Status
+  status          String    @default("Actively Training")
+
+  // Relations
+  paths           UserPath[]
+  sessions        Session[]
+  publicProfile   PublicProfile?
+  pipelineStages  PipelineStage[]
+
+  // Better-Auth Relations
+  authSessions    AuthSession[]
+  accounts        Account[]
+
+  @@map("user")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Onboarding & Path Context
+// ─────────────────────────────────────────────────────────────────────────────
+
+model UserPath {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String   // "JOB", "STARTUP", "PROFESSIONAL"
+  context   Json?    // Details: role, industry, level...
+  createdAt DateTime @default(now())
+
+  @@map("user_path")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Simulation Sessions
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Session {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type        String   // "WARMUP", "CORE", "STRESS_TEST", "RECOVERY", "RAPID_FIRE"
+  createdAt   DateTime @default(now())
+
+  // Metrics (Hidden from user initially)
+  fluencyScore      Float?
+  resilienceScore   Float?
+  clarityScore      Float?
+
+  // Qualitative Feedback
+  feedback    Json?
+
+  @@map("session")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Public Profile (CV Replacement)
+// ─────────────────────────────────────────────────────────────────────────────
+
+model PublicProfile {
+  id              String @id @default(cuid())
+  userId          String @unique
+  user            User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Behavioral Indexes (Bands: 1-5)
+  commFluencyBand         Int?
+  pressureResilienceBand  Int?
+  structuredThinkingBand  Int?
+  behavioralMaturityBand  Int?
+
+  // Path Signals
+  jobSignals      Json?
+  startupSignals  Json?
+
+  // Trust & Verification
+  verifiedSessions     Int     @default(0)
+  isAntiGamingVerified Boolean @default(false)
+
+  @@map("public_profile")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// B2B: Organizations (Companies & Investors)
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Organization {
+  id        String      @id @default(cuid())
+  name      String
+  type      String      // "COMPANY", "INVESTOR"
+  createdAt DateTime    @default(now())
+  pipelines Pipeline[]
+  members   OrgMember[]
+
+  @@map("organization")
+}
+
+model OrgMember {
+  id             String       @id @default(cuid())
+  orgId          String
+  userId         String
+  role           String       // "ADMIN", "RECRUITER", "ASSOCIATE"
+  organization   Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@map("org_member")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// B2B: Talent Pipelines (Clari-style)
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Pipeline {
+  id        String          @id @default(cuid())
+  orgId     String
+  org       Organization    @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  name      String
+  type      String          // "HIRING", "INVESTMENT"
+  stages    PipelineStage[]
+  createdAt DateTime        @default(now())
+
+  @@map("pipeline")
+}
+
+model PipelineStage {
+  id          String   @id @default(cuid())
+  pipelineId  String
+  pipeline    Pipeline @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status      String   // "DISCOVERED", "OBSERVED", "ENGAGED", "VALIDATED", "SHORTLISTED", "HIRED", "PASSED"
+  updatedAt   DateTime @updatedAt
+
+  @@map("pipeline_stage")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Better-Auth Models
+// ─────────────────────────────────────────────────────────────────────────────
+
+model AuthSession {
+  id        String   @id
+  userId    String
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("auth_session")
+}
+
+model Account {
+  id           String    @id
+  userId       String
+  accountId    String
+  providerId   String
+  accessToken  String?
+  refreshToken String?
+  expiresAt    DateTime?
+  password     String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("verification")
+}
